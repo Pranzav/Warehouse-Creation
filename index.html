@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>Delhivery Client Warehouse Creator</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f0f4f8;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+        }
+        .container {
+            background-color: #ffffff;
+            padding: 2.5rem;
+            border-radius: 1.5rem;
+            box-shadow: 0 15px 30px rgba(0, 0, 0, 0.1);
+            max-width: 900px;
+            width: 95%;
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+        .form-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 1.25rem;
+        }
+        .form-group { display: flex; flex-direction: column; }
+        .form-group label { margin-bottom: 0.5rem; font-weight: 600; color: #374151; }
+        .form-group input {
+            padding: 0.75rem 1rem;
+            border: 1px solid #d1d5db;
+            border-radius: 0.75rem;
+            font-size: 1rem;
+            color: #374151;
+        }
+        .btn-primary {
+            background-image: linear-gradient(to right, #6366f1, #3b82f6);
+            color: white;
+            padding: 0.85rem 1.75rem;
+            border-radius: 0.75rem;
+            font-weight: 700;
+        }
+        .message-box {
+            padding: 1rem;
+            border-radius: 0.75rem;
+            font-size: 0.95rem;
+            font-weight: 500;
+        }
+        .success { background-color: #d1fae5; color: #065f46; border: 1px solid #34d399; }
+        .error { background-color: #fee2e2; color: #991b1b; border: 1px solid #ef4444; }
+        .loading-spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #3b82f6;
+            border-radius: 50%;
+            width: 30px; height: 30px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto; display: none;
+        }
+        @keyframes spin { 0%{transform:rotate(0deg)} 100%{transform:rotate(360deg)} }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h1 class="text-center">Delhivery Client Warehouse Creator</h1>
+
+    <!-- Loading Spinner -->
+    <div id="loadingSpinner" class="loading-spinner"></div>
+
+    <!-- JWT Status -->
+    <div id="jwtStatus" class="message-box hidden">
+        <p><strong>JWT Status:</strong> <span id="jwtMessage"></span></p>
+        <p id="currentJwt" class="text-sm break-all mt-2"></p>
+    </div>
+
+    <!-- Login Form -->
+    <form id="loginForm">
+        <h2 class="text-xl font-bold text-gray-800 mb-6 text-center">Login</h2>
+        <div class="form-grid">
+            <div class="form-group mb-4">
+                <label for="username" class="block text-sm font-medium text-gray-700 mb-2">
+                    Username
+                </label>
+                <select
+                        id="username"
+                        required
+                        class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-gray-700 shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                >
+                    <option value="">-- Select Username --</option>
+                    <option value="PRANAYSABOORPB2BR">PRANAYSABOORPB2BR</option>
+                    <option value="CAMPUSEXXPRESB2BC">CAMPUSEXXPRESB2BC</option>
+                    <option value="PRANAYSABOO4RPB2BR">PRANAYSABOO4RPB2BR</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label for="password">Password</label>
+                <input type="password" id="password" required />
+            </div>
+        </div>
+        <button type="submit" class="btn-primary w-full mt-6">Login</button>
+    </form>
+
+    <!-- Warehouse Form -->
+    <form id="clientWarehouseForm" class="hidden">
+        <h2 class="text-xl font-bold text-gray-800 mb-6 text-center">Create New Warehouse</h2>
+        <div class="form-grid">
+            <div class="form-group"><label>Phone</label><input type="text" name="phone" required></div>
+            <div class="form-group"><label>Name</label><input type="text" name="name" required></div>
+            <div class="form-group"><label>Email</label><input type="email" name="email" required></div>
+            <div class="form-group"><label>Registered Name</label><input type="text" name="registered_name" value="TEST_REG_NAME" required></div>
+            <div class="form-group"><label>Address</label><input type="text" name="address" required></div>
+            <div class="form-group"><label>PIN Code</label><input type="text" name="pin" required></div>
+            <div class="form-group"><label>City</label><input type="text" name="city" required></div>
+            <div class="form-group"><label>Country</label><input type="text" name="country" required></div>
+            <div class="form-group"><label>Return Address</label><input type="text" name="return_address" required></div>
+            <div class="form-group"><label>Return PIN</label><input type="text" name="return_pin" required></div>
+            <div class="form-group"><label>Return City</label><input type="text" name="return_city" required></div>
+            <div class="form-group"><label>Return State</label><input type="text" name="return_state"></div>
+            <div class="form-group"><label>Return Country</label><input type="text" name="return_country" required></div>
+        </div>
+        <button type="submit" class="btn-primary w-full mt-8">Create Warehouse</button>
+    </form>
+
+    <!-- Response -->
+    <div id="responseMessage" class="message-box hidden"></div>
+</div>
+
+<script>
+    let jwtToken = '';
+
+    const loadingSpinner = document.getElementById('loadingSpinner');
+    const jwtStatus = document.getElementById('jwtStatus');
+    const jwtMessage = document.getElementById('jwtMessage');
+    const currentJwt = document.getElementById('currentJwt');
+    const loginForm = document.getElementById('loginForm');
+    const clientWarehouseForm = document.getElementById('clientWarehouseForm');
+    const responseMessageDiv = document.getElementById('responseMessage');
+
+    function showMessage(message, type) {
+        responseMessageDiv.className = `message-box ${type}`;
+        responseMessageDiv.textContent = message;
+        responseMessageDiv.classList.remove('hidden');
+    }
+    function clearMessage() { responseMessageDiv.classList.add('hidden'); responseMessageDiv.textContent=''; }
+    function showLoading() { loadingSpinner.style.display='block'; clearMessage(); }
+    function hideLoading() { loadingSpinner.style.display='none'; }
+
+    async function performLogin(event) {
+        event.preventDefault();
+        const username = document.getElementById('username').value.trim();
+        const password = document.getElementById('password').value.trim();
+        if (!username || !password) return;
+
+        showLoading();
+        jwtStatus.classList.remove('hidden','success','error');
+        jwtMessage.textContent = 'Attempting to log in...';
+        currentJwt.textContent = '';
+
+        try {
+            const response = await fetch('https://ltl-clients-api.delhivery.com/ums/login', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ username, password })
+            });
+            const data = await response.json();
+            if (response.ok && data.success) {
+                jwtToken = data.data.jwt;
+                jwtStatus.classList.add('success');
+                jwtMessage.textContent = 'Login successful! JWT obtained.';
+                currentJwt.textContent = `JWT: ${jwtToken.substring(0,50)}...`;
+                loginForm.classList.add('hidden');
+                clientWarehouseForm.classList.remove('hidden');
+            } else {
+                jwtStatus.classList.add('error');
+                jwtMessage.textContent = 'Login failed: ' + (data.message || 'Unknown error');
+            }
+        } catch (err) {
+            jwtStatus.classList.add('error');
+            jwtMessage.textContent = 'Network error during login.';
+            console.error(err);
+        } finally { hideLoading(); }
+    }
+
+    async function createClientWarehouse(event) {
+        event.preventDefault();
+        if (!jwtToken) { showMessage('Error: JWT not available.','error'); return; }
+        showLoading();
+
+        const formData = new FormData(event.target);
+        const payload = {};
+        for (const [key,val] of formData.entries()) payload[key]=val;
+        if (!payload.return_state) payload.return_state="";
+
+        try {
+            const response = await fetch('https://cors-anywhere.herokuapp.com/https://track.delhivery.com/api/backend/clientwarehouse/create/', {
+                method:'POST',
+                headers:{
+                    'Authorization':`Bearer ${jwtToken}`,
+                    'Content-Type':'application/json',
+                    'Accept':'application/json'
+                },
+                body:JSON.stringify(payload)
+            });
+            const data = await response.json();
+            if (response.ok && data.success) {
+                showMessage('Warehouse created successfully!','success');
+            } else {
+                showMessage('Failed: '+(data.message||JSON.stringify(data)),'error');
+            }
+        } catch (err) {
+            showMessage('Network error during warehouse creation.','error');
+            console.error(err);
+        } finally { hideLoading(); }
+    }
+
+    loginForm.addEventListener('submit', performLogin);
+    clientWarehouseForm.addEventListener('submit', createClientWarehouse);
+</script>
+</body>
+</html>
